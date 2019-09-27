@@ -1,0 +1,10 @@
+{
+    "LevelGame":[
+        {"Level":1, "TargetScore":"3000"},
+        {"Level":2, "TargetScore":"4000"},
+        {"Level":3, "TargetScore":"5000"},
+        {"Level":4, "TargetScore":"6000"},
+        {"Level":5, "TargetScore":"7000"},
+        {"Level":6, "TargetScore":"7000"}
+    ]
+}
