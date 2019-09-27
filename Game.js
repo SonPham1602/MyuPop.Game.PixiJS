@@ -42,7 +42,7 @@ window.onload = function () {
     var pivot = 0;
     var selectedTile = null;
     let app = new PIXI.Application({autoResize: true, width: 450, height: 700 });
-    app.renderer.backgroundColor= 0xfff;
+    app.renderer.backgroundColor = 0x000000;
    
     
     document.body.appendChild(app.view);
@@ -281,6 +281,13 @@ window.onload = function () {
             optionSoundGame.ShowButton();
             playAgain.ShowButton();
             backToMenuButton.ShowButton();
+            this.setTimeout(()=>{
+                optionSoundGame.HideButton();
+                playAgain.HideButton();
+                backToMenuButton.HideButton();
+                checkClicMenuButton = false;
+
+            },4000)
         }
         else 
         {
@@ -861,10 +868,42 @@ window.onload = function () {
             mainSoundMenu.stopSound();
             mainSound.playSound();
             HideLayoutMenu();
+            FadeOutLoadLayout(container,0.05);
+            FadeInLoadLayout(container,0.05);
             timerValue = this.setInterval(TickTimer, 1000);
         });
+        var buttonSetting = new ButtonGame('settingsButton', 350, 550, 100, 100, layoutMenuGame)
+        buttonSetting.Click(()=>{
 
+        })
+        var buttonHighScore = new ButtonGame('upgradeButton',100,550,100,100,layoutMenuGame);
+        buttonHighScore.Click(()=>{
+
+        });
       
+    }
+    function FadeInLoadLayout(layout,increase)
+    {
+        layout.alpha=0;
+        var timerAnimator = setInterval(()=>{
+            layout.alpha+=increase;
+            if(layout.alpha>=1)
+            {
+                layout.alpha=1;
+                clearInterval(timerAnimator);
+            }
+        },15)
+    }
+    function FadeOutLoadLayout(layout,decease) {
+        layout.alpha = 1;
+        var timerAnimator = setInterval(() => {
+            layout.alpha-=decease;
+            if(layout.alpha <= 0)
+            {
+                layout.alpha = 0;
+                clearInterval(timerAnimator);
+            }
+        }, 15);
     }
     SetupLayoutMemuGame();
     
@@ -898,7 +937,7 @@ window.onload = function () {
         backgroundEndGame.y = 170;
         backgroundEndGame.x = 30;
         layoutEndgame.addChild(backgroundEndGame);
-        var scoreGameText = new this.PIXI.Text(scoreGame, { fill: 'white', align: 'right', fontSize: 35 });
+        var scoreGameText = new this.PIXI.Text(scoreGame, { fill: 'white', align: 'center', fontSize: 35 });
         scoreGameText.position.x = 220;
         scoreGameText.position.y = 270;
         var buttonPlayAgain = new ButtonGame("rePlay",230,340,70,70,layoutEndgame);
@@ -907,6 +946,8 @@ window.onload = function () {
             endGame=false;
             layoutEndgame.visible = false;
         });
+        
+     
         layoutEndgame.addChild(scoreGameText);
         
         layoutEndgame.visible = true;
@@ -922,6 +963,17 @@ window.onload = function () {
     {
 
     }
+    function AutoCloseButtonMenuInGame(buttonArray) {
+        var timerAutomator = setInterval(() => {
+            if(timerAutomator.valueOf == 5000)
+            {
+                
+                button.HideButton();
+            }
+        }, 15);
+    }
+    
+
     
    
 
