@@ -25,9 +25,9 @@ Level.AssetGame = [
 ];
 
 window.onload = function () {
-    var endGame = false;
-    var offSound = false;
-    var inGame = false;
+    var endGame = false;// this variable will check game is end.
+    var offSound = false;// this variable check off sound in game
+    var inGame = false; // this variable check game is play
     var checkFirstPlay = true;
     var powerValue = 0;// This variable is instance of Power Process
     var shouldClearTile = false;
@@ -46,6 +46,7 @@ window.onload = function () {
    
     
     document.body.appendChild(app.view);
+    //Layout game 
     //Create Game Scene Layout
     var container = new PIXI.Container();
     //Create Layout Explosion 
@@ -53,21 +54,23 @@ window.onload = function () {
     // Create Layout Button Game 
     var layoutButtonInGame = new this.PIXI.Container();
     //Create Layout end Game 
-    var layoutEndgame = new this.PIXI.Container();
-    //Hide layout end Game 
-    
-    //Hint layout game;
+    var layoutEndgame = new this.PIXI.Container(); 
+    //Hint layout Hint game
     var layoutHint = new this.PIXI.Container();
     //Manu Game layout
     var layoutMenuGame = new this.PIXI.Container(); 
+    //Tutorial layout
+    var layoutTutorial = new this.PIXI.Container();
 
     app.stage.addChild(layoutMenuGame);
     app.stage.addChild(container);
     
     app.stage.addChild(layoutEffect);
     app.stage.addChild(layoutButtonInGame);
+    app.stage.addChild(layoutTutorial);
     app.stage.addChild(layoutHint);
     app.stage.addChild(layoutEndgame);
+    
 
 
      container.x = app.screen.width/2;
@@ -437,12 +440,13 @@ window.onload = function () {
         initFieldArray();
         FillTileRandomTile();
         ShowTutorialGameInFirstPlay();
+        //ShowHintInTile(100,150,50,50);
     }
     //this function 
     function handleTileClick() {
         checkFirstPlay = false;
         
-            matches = [];
+        matches = [];
         container.selectedTile = this;
         let x = this.xCoord;
         let y = this.yCoord;
@@ -911,15 +915,28 @@ window.onload = function () {
     
     function FindHintForPlayer()
     {
-        for(var i = 0;i<Level.Field.cellByX;i++)
+
+        var matchArray = [];
+        for(var x = 0;x<Level.Field.cellByX;x++)
         {
-            for(var j = 0;j<Level.Field.cellByY;j++)
+            for(var y = 0;y<Level.Field.cellByY;y++)
             {
-                matches = []
-                findMatchTile(i,j);
-                if(matches.length>=3)
+                matchArray = []
+                if (x + 1 < Level.Field.cellByX && cells[x][y].shape.shapeType === cells[x + 1][y].shape.shapeType) {
+                    matchArray.push(cells[x + 1][y]);
+                }
+                if (x - 1 >= 0 && cells[x][y].shape.shapeType === cells[x - 1][y].shape.shapeType) {
+                    matchArray.push(cells[x - 1][y]);
+                }
+                if (y - 1 >= 0 && cells[x][y].shape.shapeType === cells[x][y - 1].shape.shapeType) {
+                    matchArray.push(cells[x][y - 1]);
+                }
+                if (y + 1 < Level.Field.cellByY && cells[x][y].shape.shapeType === cells[x][y + 1].shape.shapeType) {
+                    matchArray.push(cells[x][y + 1]);
+                }
+                if(matchArray.length>=3)
                 {
-                    return [i,j];
+                    return [x,y];
                 }
             }
         }
@@ -963,21 +980,34 @@ window.onload = function () {
     }
     function ShowTutorialGameInFirstPlay()
     {
+      
         var hint = FindHintForPlayer();
-        console.log(hint[0]);
-        console.log(hint[1]);
+        var x = hint[0];
+        var y = hint[1];
+       
+        var handClick = new PIXI.Sprite.from("game/Hand.png");
+        handClick.x = cells[hint[0]][hint[1]].shape.x-95;
+        handClick.y = cells[hint[0]][hint[1]].shape.y-35;
+        handClick.height = 50;
+        handClick.width = 50;
+        cells[x][y].shape.select();
+        layoutTutorial.addChild(handClick);
     }
+    function findMatchTileFromOnePoint(x,y) {
+       
+    }
+    
     function ShowHintInTile(x,y,width,height)
     {
-        var hintSprite = PIXI.Sprite.from("game/hint.png");
+        var hintSprite = PIXI.Sprite.from("game/hintshow.png");
 
         hintSprite.x = x;
         hintSprite.y = y;
         hintSprite.width = width;
         hintSprite.height = height;
-        
-        
+        layoutHint.addChild(hintSprite);
     }
+    
     
     
     
