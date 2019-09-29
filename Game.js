@@ -433,8 +433,10 @@ window.onload = function () {
     }
 
     function initField() {
+        
         initFieldArray();
         FillTileRandomTile();
+        ShowTutorialGameInFirstPlay();
     }
     //this function 
     function handleTileClick() {
@@ -911,13 +913,13 @@ window.onload = function () {
     {
         for(var i = 0;i<Level.Field.cellByX;i++)
         {
-            for(var j = 0;j<Level.Field.cellByY;y++)
+            for(var j = 0;j<Level.Field.cellByY;j++)
             {
                 matches = []
                 findMatchTile(i,j);
                 if(matches.length>=3)
                 {
-                    return true;
+                    return [i,j];
                 }
             }
         }
@@ -961,17 +963,23 @@ window.onload = function () {
     }
     function ShowTutorialGameInFirstPlay()
     {
+        var hint = FindHintForPlayer();
+        console.log(hint[0]);
+        console.log(hint[1]);
+    }
+    function ShowHintInTile(x,y,width,height)
+    {
+        var hintSprite = PIXI.Sprite.from("game/hint.png");
 
+        hintSprite.x = x;
+        hintSprite.y = y;
+        hintSprite.width = width;
+        hintSprite.height = height;
+        
+        
     }
-    function AutoCloseButtonMenuInGame(buttonArray) {
-        var timerAutomator = setInterval(() => {
-            if(timerAutomator.valueOf == 5000)
-            {
-                
-                button.HideButton();
-            }
-        }, 15);
-    }
+    
+    
     
 
     
