@@ -101,11 +101,11 @@ window.onload = function () {
 
     //Set up Time Icon
     let spriteTimeIcon = new PIXI.Sprite.from("game/timer-symbol.png");
-    SetUpImage(spriteTimeIcon, true, 0.5, 0.5, -90, 0, 50, 55);
+    SetUpImage(spriteTimeIcon, true, 0.5, 0.5, -90, 0, 50, 50);
     spritePanelScore.addChild(spriteTimeIcon);
     //Set up Score Icon
     let spriteStarIcon = new this.PIXI.Sprite.from("game/score-symbol.png");
-    SetUpImage(spriteStarIcon, true, 0.5, 0.5, 30, 0, 50, 55);
+    SetUpImage(spriteStarIcon, true, 0.5, 0.5, 30, 0, 50, 50);
     spritePanelScore.addChild(spriteStarIcon);
     //Set up Score Text 
     var scoreGameText = new this.PIXI.Text(scoreGame, { fill: 'white', align: 'right', fontSize: 35 });
@@ -122,8 +122,8 @@ window.onload = function () {
     SetUpImage(powerProcess, true, 0, 0.5, 205, 0, 1, 30);
     spritePanelScore.addChild(powerProcess);
     //Set up Power icon
-    var powerIcon = new this.PIXI.Sprite.from("game/score-symbol.png");
-    SetUpImage(powerIcon, true, 0.5, 0.5, 190, 0, 50, 55);
+    var powerIcon = new this.PIXI.Sprite.from("game/power-symbol.png");
+    SetUpImage(powerIcon, true, 0.5, 0.5, 190, 0, 50, 50);
     spritePanelScore.addChild(powerIcon);
 
    
@@ -184,9 +184,8 @@ window.onload = function () {
       //Set up soud game 
         var mainSound = new SoundGame("sound/MainMusic.mp3");
         mainSound.setLoop(true);
-        var mainSoundMenu = new SoundGame("sound/MenuMusic.mp3");
-        mainSoundMenu.setLoop(true);
-      
+        var mainSoundMenu ;
+
 
     //Set Up button object
     function ButtonGame(textureIndex,x,y,width,height,layout)
@@ -267,6 +266,26 @@ window.onload = function () {
     {
         this.spriteButton.alpha = 1 ;
     }
+    ButtonGame.prototype.AnimationZoomOutAndIn = function()
+    {
+        console.log("animation buttoin");
+        var timerAutomator = setInterval(() => {
+           
+            if (this.spriteButton.width >= this.defaultWidthButton*1.1 && this.spriteButton.height >= this.defaultHeightButton*1.1)
+            {
+                console.log("1");
+                this.spriteButton.width -= 1;
+                this.spriteButton.height -= 1;
+            }
+            else if(this.spriteButton.width <= this.defaultWidthButton && this.spriteButton.height <= this.defaultHeightButton)
+            {
+                this.spriteButton.width += 1;
+                this.spriteButton.height += 1;
+            }
+            
+        }, 115);
+        
+    }
       //Set up button in game 
     //Pause Game button 
     var pauseButton = new ButtonGame('menubutton',50,650,70,70,layoutButtonInGame);
@@ -308,6 +327,8 @@ window.onload = function () {
     backToMenuButton.Click(()=>{
         inGame = false;
         ShowLayputMenu();
+        mainSoundMenu = new SoundGame("sound/MenuMusic.mp3");
+        mainSoundMenu.setLoop(true);
         mainSound.stopSound();
         mainSoundMenu.playSound();
        
@@ -455,6 +476,8 @@ window.onload = function () {
         findMatchTile(x, y);
         if (this.specialTile == true) {
             specialTileClick = true;
+            var trueClickTile = new SoundGame("sound/specialSoundTile.mp3");
+            trueClickTile.playSound();
             console.log("special tile");
             findMatchForSpecialTile(x, y);
             console.log(matches.length);
@@ -470,14 +493,20 @@ window.onload = function () {
         else {
             specialTileClick = false;
             if (matches.length == 1) {
+                var soundFalseClick = new SoundGame("sound/falseClickTile.mp3");
+                soundFalseClick.playSound();
                 console.log(false);
             }
             else {
                 findMatchTile(matches[1].shape.xCoord, matches[1].shape.yCoord);
                 if (matches.length < 3) {
+                    var soundFalseClick = new SoundGame("sound/falseClickTile.mp3");
+                    soundFalseClick.playSound();
                     console.log(false);
                 }
                 else {
+                    var trueClickTile = new SoundGame("sound/soundClickTile.mp3");
+                    trueClickTile.playSound();
                     pivot = 2;
                     while (pivot < matches.length) {
                         findMatchTile(matches[pivot].shape.xCoord, matches[pivot].shape.yCoord);
@@ -859,6 +888,8 @@ window.onload = function () {
     }
     function SetupLayoutMemuGame()
     {
+        mainSoundMenu = new SoundGame("sound/MenuMusic.mp3");
+        mainSoundMenu.setLoop(true);
        
         mainSoundMenu.playSound();
         var backgroundGame = new PIXI.Sprite.from("game/BG.png");
@@ -868,6 +899,7 @@ window.onload = function () {
         ShowLayputMenu();
         var ButtonPlayGame = new ButtonGame("buttonPlay",225,500,150,150,layoutMenuGame);
         ButtonPlayGame.ShowImmediatelyButton();
+        ButtonPlayGame.AnimationZoomOutAndIn();
         ButtonPlayGame.Click(()=>{
 
             inGame  = true;
@@ -1006,6 +1038,10 @@ window.onload = function () {
         hintSprite.width = width;
         hintSprite.height = height;
         layoutHint.addChild(hintSprite);
+    }
+    function ShowAppSelectLevelGame()
+    {
+
     }
     
     
