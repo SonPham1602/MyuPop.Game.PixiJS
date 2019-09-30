@@ -61,6 +61,9 @@ window.onload = function () {
     var layoutMenuGame = new this.PIXI.Container(); 
     //Tutorial layout
     var layoutTutorial = new this.PIXI.Container();
+    //Layout Option Menu Game
+    var layoutOptionMenuGame = new this.PIXI.Container();
+
 
     app.stage.addChild(layoutMenuGame);
     app.stage.addChild(container);
@@ -70,6 +73,7 @@ window.onload = function () {
     app.stage.addChild(layoutTutorial);
     app.stage.addChild(layoutHint);
     app.stage.addChild(layoutEndgame);
+    app.stage.addChild(layoutOptionMenuGame);
     
 
 
@@ -192,6 +196,7 @@ window.onload = function () {
     {
         var textureIndexButton = new PIXI.Texture.from("game/button/"+textureIndex+".png");
         //var textureHoverButton =  new PIXI.Texture.from("game/button/"+textureIndex+".png");
+        this.canClick = true;
         this.widthClickButton = width*1.1;
         this.heightClickButton = height*1.1;
         this.defaultWidthButton = width;
@@ -227,12 +232,16 @@ window.onload = function () {
         console.log("click");
        
         this.spriteButton.on('pointerdown', ()=>{
-            this.soundButton.playSound();
-            handleButtonClick();
-            
-            
-            this.spriteButton.width=this.defaultWidthButton;
-            this.spriteButton.height=this.defaultHeightButton;
+            if(this.canClick == true)
+            {
+                this.soundButton.playSound();
+                handleButtonClick();
+
+
+                this.spriteButton.width = this.defaultWidthButton;
+                this.spriteButton.height = this.defaultHeightButton;
+            }
+           
 
         });
     };
@@ -285,6 +294,18 @@ window.onload = function () {
             
         }, 115);
         
+    }
+    ButtonGame.prototype.SwapSprite = function (path) {
+        this.spriteButton = new PIXI.Sprite.from(path)
+    }
+    ButtonGame.prototype.Block = function () {
+        this.canClick = false;
+    }
+    ButtonGame.prototype.Unblock = function () {
+        this.canClick = true;
+    }
+    ButtonGame.prototype.RemoveChild = function(){
+        this.spriteButton.parent.removeChild(this.spriteButton);
     }
       //Set up button in game 
     //Pause Game button 
@@ -912,6 +933,11 @@ window.onload = function () {
         });
         var buttonSetting = new ButtonGame('settingsButton', 350, 550, 100, 100, layoutMenuGame)
         buttonSetting.Click(()=>{
+            ShowOptionMenu(buttonHighScore,buttonSetting,ButtonPlayGame);
+            //Block 3 button menu 
+            buttonSetting.Block();
+            ButtonPlayGame.Block();
+            buttonHighScore.Block();
 
         })
         var buttonHighScore = new ButtonGame('upgradeButton',100,550,100,100,layoutMenuGame);
@@ -1043,6 +1069,41 @@ window.onload = function () {
     {
 
     }
+    function setupOptionMenuGame(button1,button2,button3)
+    {
+        var panelOption = new PIXI.Sprite.from("game/option/pauseGame.png");
+        panelOption.width = 400;
+        panelOption.height = 250;
+        panelOption.x = 30;
+        panelOption.y = 180;
+        layoutOptionMenuGame.addChild(panelOption);
+        var closeOptionMenu = new ButtonGame("close",280,360,60,60,layoutOptionMenuGame);
+        var okOptionMenu = new ButtonGame("ok",180,360,60,60,layoutOptionMenuGame);
+        okOptionMenu.Click(()=>{
+            button1.Unblock();
+            button2.Unblock();
+            button3.Unblock();
+        });
+        closeOptionMenu.Click(()=>{
+            button1.Unblock();
+            button2.Unblock();
+            button3.Unblock();
+            FadeOutLoadLayout(layoutOptionMenuGame,0.05);
+            panelOption.parent.removeChild(panelOption);
+            closeOptionMenu.RemoveChild();
+            okOptionMenu.RemoveChild();
+
+            
+        });
+        
+      
+        
+    }
+    function ShowOptionMenu(button1,button2,button3) {
+        setupOptionMenuGame(button1,button2,button3);
+        FadeInLoadLayout(layoutOptionMenuGame,0.05);
+    }
+    
     
     
     
