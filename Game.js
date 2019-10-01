@@ -27,6 +27,7 @@ Level.AssetGame = [
 window.onload = function () {
     var endGame = false;// this variable will check game is end.
     var offSound = false;// this variable check off sound in game
+    var offMusic = false;
     var inGame = false; // this variable check game is play
     var checkFirstPlay = true;
     var powerValue = 0;// This variable is instance of Power Process
@@ -296,7 +297,7 @@ window.onload = function () {
         
     }
     ButtonGame.prototype.SwapSprite = function (path) {
-        this.spriteButton = new PIXI.Sprite.from(path)
+        this.spriteButton.texture = new PIXI.Texture.from(path)
     }
     ButtonGame.prototype.Block = function () {
         this.canClick = false;
@@ -351,7 +352,12 @@ window.onload = function () {
         mainSoundMenu = new SoundGame("sound/MenuMusic.mp3");
         mainSoundMenu.setLoop(true);
         mainSound.stopSound();
-        mainSoundMenu.playSound();
+        if(offMusic == false)
+        {
+            mainSoundMenu.playSound();
+        }
+        
+       
        
     })
     
@@ -497,8 +503,12 @@ window.onload = function () {
         findMatchTile(x, y);
         if (this.specialTile == true) {
             specialTileClick = true;
-            var trueClickTile = new SoundGame("sound/specialSoundTile.mp3");
-            trueClickTile.playSound();
+            if(offSound == false)
+            {
+                var trueClickTile = new SoundGame("sound/specialSoundTile.mp3");
+                trueClickTile.playSound();
+            }
+
             console.log("special tile");
             findMatchForSpecialTile(x, y);
             console.log(matches.length);
@@ -514,20 +524,32 @@ window.onload = function () {
         else {
             specialTileClick = false;
             if (matches.length == 1) {
-                var soundFalseClick = new SoundGame("sound/falseClickTile.mp3");
-                soundFalseClick.playSound();
+                if(offSound == false)
+                {
+                    var soundFalseClick = new SoundGame("sound/falseClickTile.mp3");
+                    soundFalseClick.playSound();
+                }
+              
                 console.log(false);
             }
             else {
                 findMatchTile(matches[1].shape.xCoord, matches[1].shape.yCoord);
                 if (matches.length < 3) {
-                    var soundFalseClick = new SoundGame("sound/falseClickTile.mp3");
-                    soundFalseClick.playSound();
+                    if(offSound == false)
+                    {
+                        var soundFalseClick = new SoundGame("sound/falseClickTile.mp3");
+                        soundFalseClick.playSound();
+                    }
+                  
                     console.log(false);
                 }
                 else {
-                    var trueClickTile = new SoundGame("sound/soundClickTile.mp3");
-                    trueClickTile.playSound();
+                    if(offSound == false)
+                    {
+                        var trueClickTile = new SoundGame("sound/soundClickTile.mp3");
+                        trueClickTile.playSound();
+                    }
+                   
                     pivot = 2;
                     while (pivot < matches.length) {
                         findMatchTile(matches[pivot].shape.xCoord, matches[pivot].shape.yCoord);
@@ -924,8 +946,12 @@ window.onload = function () {
         ButtonPlayGame.Click(()=>{
 
             inGame  = true;
-            mainSoundMenu.stopSound();
-            mainSound.playSound();
+            if(offMusic == false)
+            {
+                mainSoundMenu.stopSound();
+                mainSound.playSound();
+            }
+          
             HideLayoutMenu();
             FadeOutLoadLayout(container,0.05);
             FadeInLoadLayout(container,0.05);
@@ -1017,6 +1043,8 @@ window.onload = function () {
         var scoreGameText = new this.PIXI.Text(scoreGame, { fill: 'white', align: 'center', fontSize: 35 });
         scoreGameText.position.x = 220;
         scoreGameText.position.y = 270;
+        scoreGameText.anchor.set(0.5);
+        
         var buttonPlayAgain = new ButtonGame("rePlay",230,340,70,70,layoutEndgame);
         buttonPlayAgain.Click(()=>{
             ResetGame();
@@ -1079,6 +1107,42 @@ window.onload = function () {
         layoutOptionMenuGame.addChild(panelOption);
         var closeOptionMenu = new ButtonGame("close",280,360,60,60,layoutOptionMenuGame);
         var okOptionMenu = new ButtonGame("ok",180,360,60,60,layoutOptionMenuGame);
+        //Setting sound
+        var soundSetting;
+        if(offSound == false)
+        {
+            soundSetting = new ButtonGame("sound", 180, 300, 70, 70, layoutOptionMenuGame);
+        }
+        else{
+            soundSetting = new ButtonGame("mutesound", 180, 300, 70, 70, layoutOptionMenuGame);
+        }
+      
+
+        soundSetting.Click(()=>{
+            offSound=!offSound;
+            if(offSound == true)
+            {
+                soundSetting.SwapSprite("game/button/mutesound.png");
+                mainSoundMenu.stopSound();
+            }
+            else
+            {
+                soundSetting.SwapSprite("game/button/sound.png");
+                mainSoundMenu.playSound();
+            }
+        });
+        var musicSetting = new ButtonGame("music", 280, 300, 70, 70, layoutOptionMenuGame);
+        musicSetting.Click(()=>{
+             offMusic=!offMusic;
+           
+            if (offMusic == true) {
+                musicSetting.SwapSprite("game/button/mutemusic.png");
+            }
+            else {
+                musicSetting.SwapSprite("game/button/music.png");
+            }
+
+        })
         okOptionMenu.Click(()=>{
             button1.Unblock();
             button2.Unblock();
@@ -1092,24 +1156,13 @@ window.onload = function () {
             panelOption.parent.removeChild(panelOption);
             closeOptionMenu.RemoveChild();
             okOptionMenu.RemoveChild();
+            soundSetting.RemoveChild();
+            musicSetting.RemoveChild();
 
-            
-        });
-        
-      
-        
+        });       
     }
     function ShowOptionMenu(button1,button2,button3) {
         setupOptionMenuGame(button1,button2,button3);
         FadeInLoadLayout(layoutOptionMenuGame,0.05);
     }
-    
-    
-    
-    
-    
-
-    
-   
-
 }
