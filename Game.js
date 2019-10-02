@@ -9,7 +9,9 @@ Level.Field = {
     upScore: 15,
     usingPowerScore: 1500,
     timerOfUsingPower: 5000,
-    rangeUpAndDowPowerBar: 2
+    rangeUpAndDowPowerBar: 2,
+    speedFalling: 6,
+    timeFalling:4,
 };
 Level.TileTypes = [
     { name: "tile1" },
@@ -25,6 +27,7 @@ Level.AssetGame = [
 ];
 
 window.onload = function () {
+    var pauseGame = false;
     var endGame = false;// this variable will check game is end.
     var offSound = false;// this variable check off sound in game
     var offMusic = false;
@@ -37,8 +40,11 @@ window.onload = function () {
     var cells = [];// Array of tiles
     var matches = [];//Array of matching tiles
     var scoreGame = 0;//Score in Game
-    var timerGame = 30;// Value of timer counter
+    var timerGame = 3000000;// Value of timer counter
     var timerValue; 
+    var showHint = false;
+    var timerHint;
+    var timerValueHint = 0
 
     var pivot = 0;
     var selectedTile = null;
@@ -64,11 +70,14 @@ window.onload = function () {
     var layoutTutorial = new this.PIXI.Container();
     //Layout Option Menu Game
     var layoutOptionMenuGame = new this.PIXI.Container();
+    //Layout YesNo Question 
+    var layoutYesNoQuestion = new this.PIXI.Container();
+    var layoutHideFallingAnimation = new this.PIXI.Container();
 
 
     app.stage.addChild(layoutMenuGame);
     app.stage.addChild(container);
-    
+    app.stage.addChild(layoutHideFallingAnimation);
     app.stage.addChild(layoutEffect);
     app.stage.addChild(layoutButtonInGame);
     app.stage.addChild(layoutTutorial);
@@ -80,20 +89,37 @@ window.onload = function () {
 
      container.x = app.screen.width/2;
      container.y = app.screen.height/2;
+    var backgroundTile = this.PIXI.Sprite.from("game/backgroundingame.png");
+    backgroundTile.width = this.Level.Field.cellByX * this.Level.Field.cellSize + 30;
+    backgroundTile.height = this.Level.Field.cellByY * this.Level.Field.cellSize + 25;
+    backgroundTile.x = 135;
+    backgroundTile.y = 190;
+ 
+     //mask
+    // var thing = new this.PIXI.Graphics();
+
+    // thing.height = backgroundTile.height;
+    // thing.width = backgroundTile.width;
+    // thing.x = backgroundTile.x;
+    // thing.y = backgroundTile.y;
+    // container.mask = thing;
+    // thing.clear();
+    // thing.beginFill(0x8bc5ff, 0.4);
+    // thing.moveTo(-120 + 20, -100 + 20);
+    // thing.lineTo(120 + 20, -100 + 20);
+    // thing.lineTo(120 + 20, 100 + 20);
+    // thing.lineTo(-120 + 20, 100 + 20);
+    //end mask
     let Background = PIXI.Sprite.from("game/backgroundMainGame.png");
     let texture = PIXI.utils.TextureCache["game/backgroundMainGame.png"];
     let sprite = new PIXI.Sprite(texture);
     //sprite.height=container.height;
     //sprite.anchor.set(0.5);
     container.addChild(sprite);
-    var backgroundTile = this.PIXI.Sprite.from("game/backgroundingame.png");
-    backgroundTile.width = this.Level.Field.cellByX*this.Level.Field.cellSize+30;
-    backgroundTile.height =this.Level.Field.cellByY*this.Level.Field.cellSize+30;
-    backgroundTile.x=135;
-    backgroundTile.y=190;
+   
     
-    container.addChild(backgroundTile);
-
+   container.addChild(backgroundTile);
+   
     //Set up panel score
     let spritePanelScore = new this.PIXI.Container();
     //spritePanelScore.anchor.set(0.5);
@@ -322,6 +348,7 @@ window.onload = function () {
         checkClicMenuButton=!checkClicMenuButton;
         if(checkClicMenuButton==true)
         {
+            pauseGame = true;
             optionSoundGame.ShowButton();
             playAgain.ShowButton();
             backToMenuButton.ShowButton();
@@ -346,6 +373,7 @@ window.onload = function () {
         this.console.log("turn off sound");
         offSound = !offSound;
     });
+    //Back to Menu
     backToMenuButton.Click(()=>{
         inGame = false;
         ShowLayputMenu();
@@ -356,11 +384,12 @@ window.onload = function () {
         {
             mainSoundMenu.playSound();
         }
-        
-       
-       
     })
-    
+    //Play Again
+    playAgain.Click(()=>{
+        ResetGame();
+    })
+
     
     function Shape(shapeType, x, y) {
         PIXI.Sprite.call(this, PIXI.loader.resources["game/" + shapeType.name + ".png"].texture);
@@ -368,7 +397,9 @@ window.onload = function () {
         this.xCoord = x;
         this.yCoord = y;
         this.x = 150 + this.xCoord * Level.Field.cellSize;
-        this.y = 200+this.yCoord * Level.Field.cellSize;
+        this.y = 200 + this.yCoord * Level.Field.cellSize;
+        this.defaulX = 150 + this.xCoord * Level.Field.cellSize;
+        this.defaulY = 200 + this.yCoord * Level.Field.cellSize;
 
         this.shapeType = shapeType;
         this.clicked = false;
@@ -389,32 +420,34 @@ window.onload = function () {
         this.selected = true;
         this.tint = '0xAAAAAA';
     }
-    Shape.prototype.moveTo = {};
-    Shape.prototype.moveTo = function (x, y, speed) {
+    //Shape.prototype.moveTo = {};
+    Shape.prototype.moveTo = function (y, speed) {
         //this.moveTo={};
-        this.moveTo.x = x;
-        this.moveTo.y = y;
+        this.moveToY = y;
         this.speed = speed;
         this.move();
     }
     Shape.prototype.move = function () {
+        this.parent.removeChild(this);
+        container.addChild(this);
         // console.log("Vao Move");
-        if (this.moveTo === undefined) {
+        if (this.moveToY === undefined) {
             //console.log("error chua chay moveTo");
             return false;
         }
 
-        if (this.y > this.moveTo.y) 
+        if (this.y > this.moveToY) 
         {
-            // console.log("Vao Move 3");
-            if (this.y - this.speed < this.moveTo.y) {
-                this.y = this.moveTo.y;
+           
+            //console.log("Vao Move 3");
+            if (this.y - this.speed < this.moveToY) {
+                this.y = this.moveToY;
             } else {
-                var timerAnimator = setInterval(()=>{
+                var timerAnimator = new setInterval(()=>{
                     this.y -= this.speed;
-                    if(this.y<=this.moveTo.y)
+                    if(this.y<=this.moveToY)
                     {
-                        this.y = this.moveTo.y;
+                        this.y = this.moveToY;
                         clearInterval(timerAnimator);
                     }
                 },15)
@@ -422,24 +455,34 @@ window.onload = function () {
 
             }
         } 
-        else if (this.y < this.moveTo.y) 
+        else if (this.y < this.moveToY) 
             {
-            //console.log("Vao Move 6");
-            if (this.y + this.speed > this.moveTo.y) {
-                this.y = this.moveTo.y;
+            console.log("Move toi",this.moveToY)
+            if (this.y + this.speed > this.moveToY) {
+                console.log("Vao Move 6");
+                this.y = this.moveToY;
             } else {
                 var timerAnimator = setInterval(()=>{
                     this.y += this.speed;
-                    if(this.y>=this.moveTo.y)
-                {
-                    this.y = this.moveTo.y;
-                    clearInterval(timerAnimator);
-                }
+                    if(this.y>=this.moveToY)
+                    {
+                        this.y = this.moveToY;
+                        console.log("Xong timer");
+                        clearInterval(timerAnimator)
+                        
+                    }
                 },15)
                 
             }
         }
         return true;
+    }
+    Shape.prototype.RemoveChild = function () {
+        this.parent.removeChild(this);
+    }
+    Shape.prototype.SetPosition = function (x,y) {
+        this.x = x;
+        this.y = y;
     }
 
     init();
@@ -462,10 +505,11 @@ window.onload = function () {
         requestAnimationFrame(upDate);
         scoreGameText.text = scoreGame;
         timerGameText.text = timerGame;
-        clearMatchsArray();
+        //clearMatchsArray();
         //calculateScoreGame();
-        initTileCoorinates();
+        //initTileCoorinates();
         //CheckEndGame();
+       // ShowHintTile();
         if(offSound == true && inGame == true)
         {
             mainSound.stopSound();
@@ -484,16 +528,23 @@ window.onload = function () {
     }
 
     function initField() {
-        
         initFieldArray();
         FillTileRandomTile();
-        ShowTutorialGameInFirstPlay();
+        var backgroundTileHide = this.PIXI.Sprite.from("game/Background.png");
+        backgroundTileHide.width = this.Level.Field.cellByX * this.Level.Field.cellSize + 100;
+        backgroundTileHide.height = 148;
+        backgroundTileHide.x = 0;
+        backgroundTileHide.y = 0;
+        layoutHideFallingAnimation.addChild(backgroundTileHide);
+    
+        //ShowTutorialGameInFirstPlay();
         //ShowHintInTile(100,150,50,50);
     }
+
     //this function 
     function handleTileClick() {
         checkFirstPlay = false;
-        
+        showHint = false;
         matches = [];
         container.selectedTile = this;
         let x = this.xCoord;
@@ -520,6 +571,9 @@ window.onload = function () {
                 pivot++;
             }
             shouldClearTile = true;
+            clearMatchsArray();
+            //remove hint
+            
         }
         else {
             specialTileClick = false;
@@ -557,9 +611,26 @@ window.onload = function () {
                     }
                     shouldClearTile = true;
                     console.log("Do dai" + matches.length);
+                    clearMatchsArray();
+                    //remove hint 
+                 
+                   
                 }
             }
         }
+       
+        // timerHint = setInterval(()=>{
+            
+            
+        //     timerValueHint +=1;
+        //     if(timerValueHint == 4 )
+        //     {
+        //         console.log("Show Hint")
+        //         timerValueHint = 0;
+        //        ShowHintTile();
+        //        clearInterval(timerHint);
+        //     }
+        // },1000)
         
         
         // printMatchArraytoConsole();
@@ -597,8 +668,9 @@ window.onload = function () {
             }
         }
         // console.log("Vi tri truoc khi move",cells[0][0].shape.x,cells[0][0].shape.y);
-        //cells[0][0].shape.moveTo(400,400, 8);
-        //cells[0][0].shape.move();
+      
+        //cells[0][3].shape.moveTo(550,0.5);
+        //cells[0][0].shape.moveTo(600,0.5);
         // console.log("Vi tri sau khi move",cells[0][0].shape.x,cells[0][0].shape.y);
 
     }
@@ -704,9 +776,15 @@ window.onload = function () {
                 y = matches[index].shape.yCoord;
                 console.log("Tao do special", x, y);
             }
+            //Start remove tiles
             for (var i = 0; i < matches.length; i++) {
+
+                console.log("Do dai xoa la ",matches.length);
                 clearTileInArray(matches[i].shape.xCoord, matches[i].shape.yCoord);
+                if(i == matches.length-1)
+                    console.log("xong xoa")
             }
+         
             if (matches.length >= 5 && specialTileClick == false) {
                 console.log("Tao do special", x, y);
                 var shape = new Shape(getSpecialType(), x, y);
@@ -719,6 +797,7 @@ window.onload = function () {
 
             calculateScoreGame();
             matches = [];
+            console.log("bat dau fill")
             fillEmptyTile();
         }
 
@@ -726,56 +805,104 @@ window.onload = function () {
 
     function clearTileInArray(x, y) {
         if (cells[x][y].shape !== null) {
-            //console.log("Vi tri xoa", x, y);
+            console.log("Vi tri xoa", x, y);
             let xExplosion = cells[x][y].shape.x;
             let yExplosion = cells[x][y].shape.y;
             setupExplosionEffect(xExplosion,yExplosion);
+            cells[x][y].shape.RemoveChild();
             cells[x][y].shape.destroy();//will remove scipte out array
             cells[x][y].shape = null;
+           
             
             cells[x].lackOfTile += 1;
         }
 
     }
     function fillEmptyTile() {
+        console.log("fill Tile");
         shiftToBottom();
-        addNewTile();
+        //addNewTile();
     }
     function shiftToBottom() {
-        for (var x = 0; x < Level.Field.cellByX; x++) {
+        for (var x = Level.Field.cellByX -1 ; x >=0; x--) {
             if (cells[x].lackOfTile > 0) {
-                for (var y = Level.Field.cellByY; y > 0; y--) {
-                    shiftToBottomShape(x, y - 1);
-                }
+                console.log("column shift",x);
+                    shiftToBottomShape(x);
+                
             }
         }
+     
     }
-    function shiftToBottomShape(x, y) {
-        while (y < Level.Field.cellByY - 1) {
-            if (cells[x][y].shape !== null && cells[x][y + 1].shape === null) {
-                // cells[x][y].shape.moveTo(0,cells[x][y].shape.y+Level.Field.cellSize,1,()=>
-                // {
-                //     cells[x][y].shape.y+=Level.Field.cellSize;
-                // });
-                cells[x][y].shape.y+=Level.Field.cellSize;
-                cells[x][y].shape.yCoord++;
-                cells[x][y + 1].shape = cells[x][y].shape;
-                cells[x][y].shape = null;
-                // console.log("shift", x,y);
+    function shiftToBottomShape(x) {
+        console.log("Lack",cells[x].lackOfTile)
+        var y=Level.Field.cellByY - 1;
+        var numberEmptyTile = 0;
+        var positionAdding = 0
+        while (y >= 0 ) {
+            if (cells[x][y].shape === null)
+            {
+                numberEmptyTile++;
+                
             }
-            y++;
+            else
+            {
+                if(numberEmptyTile>0)
+                {
+                    
+                    console.log("*********************")
+                    console.log("number empty ", numberEmptyTile);
+                    console.log("cells old",x,y);
+                    console.log("cells new",x,y+numberEmptyTile);
+                    console.log("*********************")
+                    cells[x][y].shape.moveTo(cells[x][y].shape.y+50*numberEmptyTile , Level.Field.speedFalling);
+                    cells[x][y + numberEmptyTile].shape = cells[x][y].shape;
+                    cells[x][y + numberEmptyTile].shape.yCoord = cells[x][y + numberEmptyTile].shape.yCoord + numberEmptyTile;
+                    cells[x][y].shape = null;            
+                   console.log("empty tai", x, y);
+                  
+                }                
+            }
+            // if (cells[x][y].shape !== null && cells[x][y + 1].shape === null) {
+            //     cells[x][y].shape.moveTo(150 + cells[x][y].shape.xCoord * Level.Field.cellSize, 200 + cells[x][y].shape.yCoord * Level.Field.cellSize+Level.Field.cellSize,1);
+            //     //cells[x][y].shape.y+=Level.Field.cellSize;
+            //     cells[x][y].shape.yCoord++;
+            //     cells[x][y + 1].shape = cells[x][y].shape;
+            //     //cells[x][y].shape = null;
+            //     // console.log("shift", x,y);
+            // }
+             y= y -1;
         }
+        for (y = 0; y < Level.Field.cellByY; y++) {
+            if (cells[x][y].shape === null) {
+                var shape = new Shape(getRandomShapeType(), x, y);
+                shape.SetPosition(shape.x, shape.y - cells[x].lackOfTile*Level.Field.cellSize);
+                shape.moveTo(shape.defaulY, Level.Field.speedFalling)
+                cells[x][y] = {};
+                cells[x][y].shape = shape;
+              
+            }
+            else{
+                console.log("vi tri out",y)
+                break;
+            }
+        }
+        cells[x].lackOfTile = 0;
+        
+      
     }
+
     function addNewTile() {
         for (var x = 0; x < Level.Field.cellByX; x++) {
             //console.log("add for 1");
             if (cells[x].lackOfTile > 0) {
                 //console.log("add for 2");
+                
                 for (var y = 0; y < Level.Field.cellByY; y++) {
-
                     if (cells[x][y].shape === null) {
                         var shape = new Shape(getRandomShapeType(), x, y);
-
+                        
+                        shape.SetPosition(shape.x,shape.y - cells[x].lackOfTile * Level.Field.cellSize);
+                        shape.moveTo(shape.y + cells[x].lackOfTile * Level.Field.cellSize,10)
                         cells[x][y] = {};
                         cells[x][y].shape = shape;
                     }
@@ -915,6 +1042,7 @@ window.onload = function () {
     }
     function ShowLayputMenu()
     {
+        layoutHideFallingAnimation.visible = false;
         container.visible = false;
         layoutButtonInGame.visible = false;
         spritePanelScore.visible = false;
@@ -924,6 +1052,7 @@ window.onload = function () {
     function HideLayoutMenu()
     {
         container.visible = true;
+        layoutHideFallingAnimation.visible = true;
         layoutButtonInGame.visible = true;
         spritePanelScore.visible = true;
         layoutMenuGame.visible = false;
@@ -953,8 +1082,10 @@ window.onload = function () {
             }
           
             HideLayoutMenu();
+            FadeOutLoadLayout(layoutHideFallingAnimation,0.05);
             FadeOutLoadLayout(container,0.05);
             FadeInLoadLayout(container,0.05);
+            FadeInLoadLayout(layoutHideFallingAnimation, 0.05);
             timerValue = this.setInterval(TickTimer, 1000);
         });
         var buttonSetting = new ButtonGame('settingsButton', 350, 550, 100, 100, layoutMenuGame)
@@ -1059,10 +1190,15 @@ window.onload = function () {
     }
     function ResetGame()
     {
+      
+        container.removeChildren();
         scoreGame = 0;
         powerValue = 0;
         timerGame = 30;
+        container.addChild(Background);
+        container.addChild(backgroundTile);
         FillTileRandomTile();
+        matches = [];
     }
     function ShowTutorialGameInFirstPlay()
     {
@@ -1083,15 +1219,46 @@ window.onload = function () {
        
     }
     
+    function  ShowHintTile() {
+       
+        var hint = FindHintForPlayer();
+        
+        var x = hint[0];
+        var y = hint[1];
+        console.log("Vi tri hint",x,y)
+        cells[x][y].shape.select();
+        ShowHintInTile(cells[x][y].shape.x, cells[x][y].shape.y,50,50)
+
+        
+     
+        
+    }
     function ShowHintInTile(x,y,width,height)
     {
+        layoutHint.removeChildren();
         var hintSprite = PIXI.Sprite.from("game/hintshow.png");
-
-        hintSprite.x = x;
-        hintSprite.y = y;
+        hintSprite.anchor.set(0.5)
+        var defaultWidth = width;
+        var defaultHeight = height;
+        hintSprite.x = x+25;
+        hintSprite.y = y+25;
         hintSprite.width = width;
         hintSprite.height = height;
+      
         layoutHint.addChild(hintSprite);
+        var timerAutomator = setTimeout(() => {
+
+            if (hintSprite.width >= defaultHeight + 8) {
+                hintSprite.width -= 1;
+                hintSprite.height -= 1;
+            }
+            else {
+                hintSprite.width += 1;
+                hintSprite.height += 1;
+            }
+
+        }, 2000)
+
     }
     function ShowAppSelectLevelGame()
     {
