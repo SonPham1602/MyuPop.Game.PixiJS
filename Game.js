@@ -1,5 +1,6 @@
 
 
+
 Level = {};
 Level.Field = {
     cellSize: 50,
@@ -10,7 +11,7 @@ Level.Field = {
     usingPowerScore: 1500,
     timerOfUsingPower: 5000,
     rangeUpAndDowPowerBar: 2,
-    speedFalling: 6,
+    speedFalling: 8,
     timeFalling:4,
 };
 Level.TileTypes = [
@@ -40,14 +41,16 @@ window.onload = function () {
     var cells = [];// Array of tiles
     var matches = [];//Array of matching tiles
     var scoreGame = 0;//Score in Game
-    var timerGame = 3000000;// Value of timer counter
+    var timerGame = 30;// Value of timer counter
     var timerValue; 
     var showHint = false;
     var timerHint;
     var timerValueHint = 0
-
+    var bestScoreGame = 0;// Best Score in game. It will show in BestGame Panel
     var pivot = 0;
     var selectedTile = null;
+    var blockTile = false;
+    var endAnimationFalling = true;
     let app = new PIXI.Application({autoResize: true, width: 450, height: 700 });
     app.renderer.backgroundColor = 0x000000;
    
@@ -72,7 +75,10 @@ window.onload = function () {
     var layoutOptionMenuGame = new this.PIXI.Container();
     //Layout YesNo Question 
     var layoutYesNoQuestion = new this.PIXI.Container();
+    //Layout Falling Animation
     var layoutHideFallingAnimation = new this.PIXI.Container();
+    //Layout Best Score of Game
+    var layoutBestScore = new this.PIXI.Container();
 
 
     app.stage.addChild(layoutMenuGame);
@@ -84,7 +90,8 @@ window.onload = function () {
     app.stage.addChild(layoutHint);
     app.stage.addChild(layoutEndgame);
     app.stage.addChild(layoutOptionMenuGame);
-    
+    app.stage.addChild(layoutBestScore);
+    app.stage.addChild(layoutYesNoQuestion);
 
 
      container.x = app.screen.width/2;
@@ -217,7 +224,39 @@ window.onload = function () {
         mainSound.setLoop(true);
         var mainSoundMenu ;
 
-
+    //Panel YesNo
+    function YesNoMessage(content,x,y,height,width,layout) {
+        var texture = new PIXI.Texture.from("game/YesNoPanel.png");
+        var SpritePanel = new PIXI.Sprite(texture);
+        SpritePanel.x = x;
+        SpritePanel.y = y;
+        SpritePanel.height = height;
+        SpritePanel.width = width;
+        var conentText = new PIXI.Text(content, { fontFamily: 'Arial', fontSize: 24, fill: 'white', align: 'center' });
+        conentText.anchor.set(0.5);
+        conentText.x = 230;
+        conentText.y = 280;
+       
+        layout.addChild(SpritePanel);
+        layout.addChild(conentText)
+        this.closeOptionMenu = new ButtonGame("close", 280, 360, 60, 60, layout);
+        this.okOptionMenu = new ButtonGame("ok", 180, 360, 60, 60, layout);
+       
+       
+      
+    }
+    YesNoMessage.prototype = this.Object.create(this.PIXI.Sprite.prototype)
+    YesNoMessage.prototype.constructor = YesNoMessage
+    YesNoMessage.prototype.Ok = function (OkFunction) {
+        this.okOptionMenu.Click(()=>{
+            OkFunction();
+        })
+    }
+      YesNoMessage.prototype.Cancel = function (cancelFunction) {
+        this.closeOptionMenu.Click(()=>{
+            cancelFunction();
+        })
+    }
     //Set Up button object
     function ButtonGame(textureIndex,x,y,width,height,layout)
     {
@@ -261,7 +300,10 @@ window.onload = function () {
         this.spriteButton.on('pointerdown', ()=>{
             if(this.canClick == true)
             {
-                this.soundButton.playSound();
+                if(offSound==false)
+                {
+                    this.soundButton.playSound();
+                }
                 handleButtonClick();
 
 
@@ -344,27 +386,41 @@ window.onload = function () {
     var backToMenuButton = new ButtonGame("close",110,660,70,70,layoutButtonInGame);
     backToMenuButton.HideImmediatelyButton();
     var checkClicMenuButton = false;
+    var pauseTint = new PIXI.Sprite.from("game/pauseTint.png");
     pauseButton.Click(()=>{
+        blockTile = true;
+        pauseGame = true;
         checkClicMenuButton=!checkClicMenuButton;
+       
         if(checkClicMenuButton==true)
         {
             pauseGame = true;
             optionSoundGame.ShowButton();
             playAgain.ShowButton();
             backToMenuButton.ShowButton();
-            this.setTimeout(()=>{
-                optionSoundGame.HideButton();
-                playAgain.HideButton();
-                backToMenuButton.HideButton();
-                checkClicMenuButton = false;
+            // this.setTimeout(()=>{
+            //     blockTile = false;
+            //     optionSoundGame.HideButton();
+            //     playAgain.HideButton();
+            //     backToMenuButton.HideButton();
+            //     checkClicMenuButton = false;
 
-            },4000)
+            // },4000)
+           
+            container.addChild(pauseTint);
+            layoutHideFallingAnimation.addChild(pauseTint)
         }
         else 
         {
+            pauseGame = false;
+            blockTile = false;
             optionSoundGame.HideButton();
             playAgain.HideButton();
             backToMenuButton.HideButton();
+            pauseTint.parent.removeChild(pauseTint)
+            layoutYesNoQuestion.removeChildren();
+            //layoutHideFallingAnimation.getChildByName("pauseTint").parent.removeChild(pauseTint);
+            
         }
     });
 
@@ -374,20 +430,60 @@ window.onload = function () {
         offSound = !offSound;
     });
     //Back to Menu
+  
     backToMenuButton.Click(()=>{
         inGame = false;
-        ShowLayputMenu();
-        mainSoundMenu = new SoundGame("sound/MenuMusic.mp3");
-        mainSoundMenu.setLoop(true);
-        mainSound.stopSound();
-        if(offMusic == false)
-        {
-            mainSoundMenu.playSound();
-        }
+        var YNMess = new YesNoMessage('Do you want to back to Menu?',20, 150, 300, 400, layoutYesNoQuestion);
+        FadeInLoadLayout(layoutYesNoQuestion,0.05,()=>{})
+        YNMess.Ok(()=>{
+            FadeOutLoadLayout(layoutYesNoQuestion, 0.05, () => {
+                layoutYesNoQuestion.removeChildren();
+            })
+            ShowLayputMenu();
+            mainSoundMenu = new SoundGame("sound/MenuMusic.mp3");
+            mainSoundMenu.setLoop(true);
+            mainSound.stopSound();
+            if (offMusic == false) {
+                mainSoundMenu.playSound();
+            }
+        })
+        
+        YNMess.Cancel(()=>{
+            FadeOutLoadLayout(layoutYesNoQuestion, 0.05, () => {
+                layoutYesNoQuestion.removeChildren();
+            })
+            
+        })
+                    
+              
+       
     })
+   
     //Play Again
     playAgain.Click(()=>{
-        ResetGame();
+        var YNMess = new YesNoMessage('Do you want to play again?', 20, 150, 300, 400, layoutYesNoQuestion);
+        FadeInLoadLayout(layoutYesNoQuestion, 0.05, () => { })
+        YNMess.Ok(() => {
+            FadeOutLoadLayout(layoutYesNoQuestion, 0.05, () => {
+                layoutYesNoQuestion.removeChildren();
+            })
+            ResetGame();
+            blockTile = false;
+            optionSoundGame.HideButton();
+            playAgain.HideButton();
+            backToMenuButton.HideButton();
+            pauseTint.parent.removeChild(pauseTint)
+            layoutYesNoQuestion.removeChildren();
+        })
+
+        YNMess.Cancel(() => {
+            FadeOutLoadLayout(layoutYesNoQuestion, 0.05, () => {
+                layoutYesNoQuestion.removeChildren();
+            })
+
+        })
+
+       
     })
 
     
@@ -402,10 +498,12 @@ window.onload = function () {
         this.defaulY = 200 + this.yCoord * Level.Field.cellSize;
 
         this.shapeType = shapeType;
-        this.clicked = false;
+        this.blockClick = false;
 
         //Special Tile
         this.specialTile = false;
+        //Frezzy Tile
+        this.FreenzyTile = false;
 
         this.scale.set(Level.Field.cellSize / this.width, Level.Field.cellSize / this.height);
         container.addChild(this);
@@ -421,13 +519,13 @@ window.onload = function () {
         this.tint = '0xAAAAAA';
     }
     //Shape.prototype.moveTo = {};
-    Shape.prototype.moveTo = function (y, speed) {
+    Shape.prototype.moveTo = function (y, speed,checkDone) {
         //this.moveTo={};
         this.moveToY = y;
         this.speed = speed;
-        this.move();
+        this.move(checkDone);
     }
-    Shape.prototype.move = function () {
+    Shape.prototype.move = function (checkDone) {
         this.parent.removeChild(this);
         container.addChild(this);
         // console.log("Vao Move");
@@ -462,10 +560,12 @@ window.onload = function () {
                 console.log("Vao Move 6");
                 this.y = this.moveToY;
             } else {
+                checkDone = false;
                 var timerAnimator = setInterval(()=>{
                     this.y += this.speed;
                     if(this.y>=this.moveToY)
                     {
+                        checkDone = true;
                         this.y = this.moveToY;
                         console.log("Xong timer");
                         clearInterval(timerAnimator)
@@ -483,6 +583,16 @@ window.onload = function () {
     Shape.prototype.SetPosition = function (x,y) {
         this.x = x;
         this.y = y;
+    }
+    Shape.prototype.SetBlock = function(block){
+        this.blockClick = block;
+    }
+    Shape.prototype.BecomeFreenzyTile = function()
+    {
+        this.FreenzyTile = true;
+        this.texture = new PIXI.Texture.from("game/tileFreenzy.png");
+        //PIXI.Sprite.call(this, PIXI.loader.resources["game/" + "tileFreenzy" + ".png"].texture);
+
     }
 
     init();
@@ -507,7 +617,7 @@ window.onload = function () {
         timerGameText.text = timerGame;
         //clearMatchsArray();
         //calculateScoreGame();
-        //initTileCoorinates();
+       // initTileCoorinates();
         //CheckEndGame();
        // ShowHintTile();
         if(offSound == true && inGame == true)
@@ -536,89 +646,101 @@ window.onload = function () {
         backgroundTileHide.x = 0;
         backgroundTileHide.y = 0;
         layoutHideFallingAnimation.addChild(backgroundTileHide);
-    
+        //cells[0][0].shape.BecomeFreenzyTile();
         //ShowTutorialGameInFirstPlay();
         //ShowHintInTile(100,150,50,50);
     }
 
     //this function 
     function handleTileClick() {
-        checkFirstPlay = false;
-        showHint = false;
-        matches = [];
-        container.selectedTile = this;
-        let x = this.xCoord;
-        let y = this.yCoord;
-        addItemToMatchArray(cells[x][y]);
-        //console.log(x, y);
-        findMatchTile(x, y);
-        if (this.specialTile == true) {
-            specialTileClick = true;
-            if(offSound == false)
-            {
-                var trueClickTile = new SoundGame("sound/specialSoundTile.mp3");
-                trueClickTile.playSound();
-            }
-
-            console.log("special tile");
-            findMatchForSpecialTile(x, y);
-            console.log(matches.length);
-            pivot = 1;
-            while (pivot < matches.length) {
-                if (matches[pivot].shape.specialTile == true) {
-                    findMatchForSpecialTile(matches[pivot].shape.xCoord, matches[pivot].shape.yCoord);
-                }
-                pivot++;
-            }
-            shouldClearTile = true;
-            clearMatchsArray();
-            //remove hint
+       
+        if(blockTile == false && endAnimationFalling == true)
+        {
             
-        }
-        else {
-            specialTileClick = false;
-            if (matches.length == 1) {
-                if(offSound == false)
-                {
-                    var soundFalseClick = new SoundGame("sound/falseClickTile.mp3");
-                    soundFalseClick.playSound();
+           
+            showHint = false;
+            matches = [];
+            container.selectedTile = this;
+            let x = this.xCoord;
+            let y = this.yCoord;
+            addItemToMatchArray(cells[x][y]);
+            //console.log(x, y);
+            findMatchTile(x, y);
+            if(this.FreenzyTile==true)
+            {
+                console.log("freenzy tile");
+                if (offSound == false) {
+                    var trueClickTile = new SoundGame("sound/specialSoundTile.mp3");
+                    trueClickTile.playSound();
                 }
-              
-                console.log(false);
+                findMatchForFreenzyTile(x,y);
+                clearMatchsArray();
+            }
+            else if (this.specialTile == true) {
+                specialTileClick = true;
+                if (offSound == false) {
+                    var trueClickTile = new SoundGame("sound/specialSoundTile.mp3");
+                    trueClickTile.playSound();
+                }
+
+                console.log("special tile");
+                findMatchForSpecialTile(x, y);
+                console.log(matches.length);
+                pivot = 1;
+                while (pivot < matches.length) {
+                    if (matches[pivot].shape.specialTile == true) {
+                        findMatchForSpecialTile(matches[pivot].shape.xCoord, matches[pivot].shape.yCoord);
+                    }
+                    pivot++;
+                }
+                shouldClearTile = true;
+                clearMatchsArray();
+                //remove hint
+
             }
             else {
-                findMatchTile(matches[1].shape.xCoord, matches[1].shape.yCoord);
-                if (matches.length < 3) {
-                    if(offSound == false)
-                    {
+                specialTileClick = false;
+                if (matches.length == 1) {
+                    if (offSound == false) {
                         var soundFalseClick = new SoundGame("sound/falseClickTile.mp3");
                         soundFalseClick.playSound();
                     }
-                  
+
                     console.log(false);
                 }
                 else {
-                    if(offSound == false)
-                    {
-                        var trueClickTile = new SoundGame("sound/soundClickTile.mp3");
-                        trueClickTile.playSound();
+                    findMatchTile(matches[1].shape.xCoord, matches[1].shape.yCoord);
+                    if (matches.length < 3) {
+                        if (offSound == false) {
+                            var soundFalseClick = new SoundGame("sound/falseClickTile.mp3");
+                            soundFalseClick.playSound();
+                        }
+
+                        console.log(false);
                     }
-                   
-                    pivot = 2;
-                    while (pivot < matches.length) {
-                        findMatchTile(matches[pivot].shape.xCoord, matches[pivot].shape.yCoord);
-                        pivot++;
+                    else {
+                        if (offSound == false) {
+                            var trueClickTile = new SoundGame("sound/soundClickTile.mp3");
+                            trueClickTile.playSound();
+                        }
+
+                        pivot = 2;
+                        while (pivot < matches.length) {
+                            findMatchTile(matches[pivot].shape.xCoord, matches[pivot].shape.yCoord);
+                            pivot++;
+                        }
+                        shouldClearTile = true;
+                        console.log("Do dai" + matches.length);
+                        clearMatchsArray();
+                        //remove hint 
+
+
                     }
-                    shouldClearTile = true;
-                    console.log("Do dai" + matches.length);
-                    clearMatchsArray();
-                    //remove hint 
-                 
-                   
                 }
             }
+
         }
-       
+        
         // timerHint = setInterval(()=>{
             
             
@@ -713,6 +835,17 @@ window.onload = function () {
         if (y + 1 < Level.Field.cellByY && cells[x][y].shape.shapeType === cells[x][y + 1].shape.shapeType) {
             addItemToMatchArray(cells[x][y + 1]);
         }
+    }
+    function findMatchForFreenzyTile(x,y) {
+        for(var i = 0;i<Level.Field.cellByX;i++)
+        {
+            addItemToMatchArray(cells[i][y]);
+        }
+        for(var j = 0;j<Level.Field.cellByY;j++)
+        {
+            addItemToMatchArray(cells[x][j]);
+        }
+        
     }
 
     function findMatchForSpecialTile(x, y) {
@@ -820,10 +953,12 @@ window.onload = function () {
     }
     function fillEmptyTile() {
         console.log("fill Tile");
+        
         shiftToBottom();
         //addNewTile();
     }
     function shiftToBottom() {
+       
         for (var x = Level.Field.cellByX -1 ; x >=0; x--) {
             if (cells[x].lackOfTile > 0) {
                 console.log("column shift",x);
@@ -831,6 +966,7 @@ window.onload = function () {
                 
             }
         }
+      
      
     }
     function shiftToBottomShape(x) {
@@ -854,7 +990,7 @@ window.onload = function () {
                     console.log("cells old",x,y);
                     console.log("cells new",x,y+numberEmptyTile);
                     console.log("*********************")
-                    cells[x][y].shape.moveTo(cells[x][y].shape.y+50*numberEmptyTile , Level.Field.speedFalling);
+                    cells[x][y].shape.moveTo(cells[x][y].shape.y+50*numberEmptyTile , Level.Field.speedFalling,endAnimationFalling);
                     cells[x][y + numberEmptyTile].shape = cells[x][y].shape;
                     cells[x][y + numberEmptyTile].shape.yCoord = cells[x][y + numberEmptyTile].shape.yCoord + numberEmptyTile;
                     cells[x][y].shape = null;            
@@ -885,7 +1021,8 @@ window.onload = function () {
                 console.log("vi tri out",y)
                 break;
             }
-        }
+        } 
+       
         cells[x].lackOfTile = 0;
         
       
@@ -915,16 +1052,21 @@ window.onload = function () {
     function TickTimer() {
         if (timerGame == 0) {
             clearInterval(timerValue);
-        }
-        else {
-            timerGame -= 1;
-            if(timerGame<=0)
-            {
+            if (timerGame <= 0) {
                 endGame = true;
+                blockTile = true;
+                if (scoreGame > bestScoreGame) {
+                    bestScoreGame = scoreGame
+                }
                 SettupLayputEndgame();
-                ShowLayoutEndGame(); 
+                ShowLayoutEndGame();
 
             }
+        }
+        else {
+            if(pauseGame== false)
+            timerGame -= 1;
+            
         }
 
 
@@ -973,12 +1115,15 @@ window.onload = function () {
         }
        
         if (powerValue>=100) {
-            console.log("using power");
+           
+            //console.log("using power");
             usingPower = true;
-            console.log("dang using 1",usingPower)
+            //console.log("dang using 1",usingPower)
             var timerAnimator = setInterval(usingPowerProcess, Level.Field.timerOfUsingPower/60);// 60 is frame / second
             setTimeout(()=>{
-                console.log("dang using 2",usingPower)
+
+                
+               // console.log("dang using 2",usingPower)
                 clearInterval(timerAnimator);
                 usingPower = false;
                 powerValue = 0;
@@ -1082,10 +1227,11 @@ window.onload = function () {
             }
           
             HideLayoutMenu();
-            FadeOutLoadLayout(layoutHideFallingAnimation,0.05);
-            FadeOutLoadLayout(container,0.05);
-            FadeInLoadLayout(container,0.05);
-            FadeInLoadLayout(layoutHideFallingAnimation, 0.05);
+            FadeOutLoadLayout(layoutHideFallingAnimation,0.05,()=>{});
+            FadeOutLoadLayout(container, 0.05, () => { });
+            FadeInLoadLayout(container, 0.05, () => { });
+            FadeInLoadLayout(layoutHideFallingAnimation, 0.05, () => { });
+            clearInterval(timerValue)
             timerValue = this.setInterval(TickTimer, 1000);
         });
         var buttonSetting = new ButtonGame('settingsButton', 350, 550, 100, 100, layoutMenuGame)
@@ -1099,6 +1245,12 @@ window.onload = function () {
         })
         var buttonHighScore = new ButtonGame('upgradeButton',100,550,100,100,layoutMenuGame);
         buttonHighScore.Click(()=>{
+            SetupLayoutBestScoreOfGame(buttonHighScore, buttonSetting, ButtonPlayGame);
+            FadeInLoadLayout(layoutBestScore,0.05);
+            buttonSetting.Block();
+            ButtonPlayGame.Block();
+            buttonHighScore.Block();
+            
 
         });
       
@@ -1115,7 +1267,7 @@ window.onload = function () {
             }
         },15)
     }
-    function FadeOutLoadLayout(layout,decease) {
+    function FadeOutLoadLayout(layout,decease,removeChild) {
         layout.alpha = 1;
         var timerAnimator = setInterval(() => {
             layout.alpha-=decease;
@@ -1123,6 +1275,7 @@ window.onload = function () {
             {
                 layout.alpha = 0;
                 clearInterval(timerAnimator);
+                removeChild();
             }
         }, 15);
     }
@@ -1172,14 +1325,16 @@ window.onload = function () {
         backgroundEndGame.x = 30;
         layoutEndgame.addChild(backgroundEndGame);
         var scoreGameText = new this.PIXI.Text(scoreGame, { fill: 'white', align: 'center', fontSize: 35 });
-        scoreGameText.position.x = 220;
+        scoreGameText.position.x = 240;
         scoreGameText.position.y = 270;
         scoreGameText.anchor.set(0.5);
         
         var buttonPlayAgain = new ButtonGame("rePlay",230,340,70,70,layoutEndgame);
         buttonPlayAgain.Click(()=>{
+            
             ResetGame();
             endGame=false;
+            layoutEndgame.removeChildren();
             layoutEndgame.visible = false;
         });
         
@@ -1190,7 +1345,8 @@ window.onload = function () {
     }
     function ResetGame()
     {
-      
+        pauseGame = false
+        blockTile = false;
         container.removeChildren();
         scoreGame = 0;
         powerValue = 0;
@@ -1199,6 +1355,8 @@ window.onload = function () {
         container.addChild(backgroundTile);
         FillTileRandomTile();
         matches = [];
+        clearInterval(timerValue)
+        timerValue = this.setInterval(TickTimer, 1000);
     }
     function ShowTutorialGameInFirstPlay()
     {
@@ -1212,6 +1370,14 @@ window.onload = function () {
         handClick.y = cells[hint[0]][hint[1]].shape.y-35;
         handClick.height = 50;
         handClick.width = 50;
+
+        // for(var x = 0;x <= Level.Field.cellByX;x++)
+        // {
+        //     for(var y = 0;y <= Level.Field.cellByY;y++)
+        //     {
+
+        //     }
+        // }
         cells[x][y].shape.select();
         layoutTutorial.addChild(handClick);
     }
@@ -1283,11 +1449,13 @@ window.onload = function () {
         else{
             soundSetting = new ButtonGame("mutesound", 180, 300, 70, 70, layoutOptionMenuGame);
         }
-      
+        var tempSoundSetting = offSound;
+        var tempMusicSetting = offMusic;
+
 
         soundSetting.Click(()=>{
-            offSound=!offSound;
-            if(offSound == true)
+            tempSoundSetting=!tempSoundSetting;
+            if(tempSoundSetting == true)
             {
                 soundSetting.SwapSprite("game/button/mutesound.png");
                 mainSoundMenu.stopSound();
@@ -1298,11 +1466,17 @@ window.onload = function () {
                 mainSoundMenu.playSound();
             }
         });
-        var musicSetting = new ButtonGame("music", 280, 300, 70, 70, layoutOptionMenuGame);
+        var musicSetting;
+        if (tempMusicSetting == false) {
+            musicSetting = new ButtonGame("music", 280, 300, 70, 70, layoutOptionMenuGame);
+        }
+        else {
+            musicSetting = new ButtonGame("mutemusic", 280, 300, 70, 70, layoutOptionMenuGame);
+        }
         musicSetting.Click(()=>{
-             offMusic=!offMusic;
+             tempMusicSetting=!tempMusicSetting;
            
-            if (offMusic == true) {
+            if (tempMusicSetting == true) {
                 musicSetting.SwapSprite("game/button/mutemusic.png");
             }
             else {
@@ -1314,22 +1488,60 @@ window.onload = function () {
             button1.Unblock();
             button2.Unblock();
             button3.Unblock();
+            FadeOutLoadLayout(layoutOptionMenuGame, 0.05,()=>{
+                offMusic = tempMusicSetting;
+                offSound = tempSoundSetting;
+                panelOption.parent.removeChild(panelOption);
+                closeOptionMenu.RemoveChild();
+                okOptionMenu.RemoveChild();
+                soundSetting.RemoveChild();
+                musicSetting.RemoveChild();
+            });
+          
         });
         closeOptionMenu.Click(()=>{
             button1.Unblock();
             button2.Unblock();
             button3.Unblock();
-            FadeOutLoadLayout(layoutOptionMenuGame,0.05);
-            panelOption.parent.removeChild(panelOption);
-            closeOptionMenu.RemoveChild();
-            okOptionMenu.RemoveChild();
-            soundSetting.RemoveChild();
-            musicSetting.RemoveChild();
+            FadeOutLoadLayout(layoutOptionMenuGame,0.05,()=>{
+                panelOption.parent.removeChild(panelOption);
+                closeOptionMenu.RemoveChild();
+                okOptionMenu.RemoveChild();
+                soundSetting.RemoveChild();
+                musicSetting.RemoveChild();
+            });
+            
 
         });       
     }
     function ShowOptionMenu(button1,button2,button3) {
         setupOptionMenuGame(button1,button2,button3);
         FadeInLoadLayout(layoutOptionMenuGame,0.05);
+    }
+    function SetupLayoutBestScoreOfGame(button1,button2,button3)
+    {
+        var backgroundBestScore = new PIXI.Sprite.from("game/bestScorePanel.png");
+        
+        backgroundBestScore.width = 400;
+        backgroundBestScore.height = 300;
+        backgroundBestScore.x = 30;
+        backgroundBestScore.y = 180;
+        layoutBestScore.addChild(backgroundBestScore);
+        var closeButton= new ButtonGame("close", 240, 370, 70, 70, layoutBestScore);
+        closeButton.Click(()=>{
+            
+            button1.Unblock();
+            button2.Unblock();
+            button3.Unblock();
+            FadeOutLoadLayout(layoutBestScore,0.05,()=>{
+                layoutBestScore.removeChildren()
+            });
+            
+        });
+        var scoreGameText = new this.PIXI.Text(bestScoreGame, { fill: 'white', align: 'right', fontSize: 45 });
+        scoreGameText.x = 240;
+        scoreGameText.y = 300;
+        scoreGameText.anchor.set(0.5);
+        layoutBestScore.addChild(scoreGameText);
     }
 }
