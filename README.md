@@ -20,3 +20,9 @@ Demo Video:  https://youtu.be/wt0Q3r9Bz4g
 * completing end game layout.
 * adding show hint when player dont know.
 * fix error dont have matching tiles that can touch.
+# 02/10/2019
+Done:
+* added automation falling tile.
+* added option menu game
+* fixed reset game
+* added explsion and touch effect sound
